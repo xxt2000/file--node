@@ -4,3 +4,7 @@
 2026-05-07 15:56:26 [info]: ::1 - - [07/May/2026:07:56:26 +0000] "DELETE /api/products/8 HTTP/1.1" 404 70 "-" "Apifox/1.0.0 (https://apifox.com)"
 2026-05-07 15:58:45 [info]: ::1 - - [07/May/2026:07:58:45 +0000] "GET /api/files/folders HTTP/1.1" 200 261 "-" "Apifox/1.0.0 (https://apifox.com)"
 2026-05-07 16:02:26 [info]: ::1 - - [07/May/2026:08:02:26 +0000] "GET /api/files/folders HTTP/1.1" 200 261 "-" "Apifox/1.0.0 (https://apifox.com)"
+2026-05-07 16:41:24 [info]: 服务器运行在 http://localhost:3000
+2026-05-07 16:41:24 [info]: API健康检查: http://localhost:3000/api/health
+2026-05-07 16:41:24 [info]: 环境: development
+2026-05-07 16:41:27 [info]: ::1 - - [07/May/2026:08:41:27 +0000] "POST /api/users/login HTTP/1.1" 400 54 "-" "Apifox/1.0.0 (https://apifox.com)"
