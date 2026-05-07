@@ -5,13 +5,14 @@ const router = express.Router();
 
 // 引入文件控制器，包含处理业务逻辑的函数（上传、下载、删除等）
 const fileController = require('../controllers/fileController');
+// 引入文件夹控制器
+const folderController = require('../controllers/folderController');
+
 // 引入文件上传中间件（通常基于 multer），用于处理 multipart/form-data 格式的请求
 const upload = require('../utils/upload');
 // 引入身份验证中间件，用于保护需要登录才能访问的接口
 const auth = require('../middleware/auth');
 
-// 引入文件夹控制器
-const folderController = require('../controllers/folderController');
 
 // ==================== 文件夹相关路由（放在前面，避免与通用路由冲突） ====================
 

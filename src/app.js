@@ -25,12 +25,26 @@ const app = express();
 
 // 3. 配置全局中间件
 // CORS 配置
-app.use(cors({
-  origin: process.env.CORS_ORIGIN || '*',
+const allowedOrigins = [
+  process.env.CORS_ORIGIN,
+  'http://localhost:5173' // 开发环境，可以硬编码
+].filter(Boolean); // 过滤掉 undefined 或空的值
+
+const corsOptions = {
+  origin: (origin, callback) => {
+    // 如果没有 origin (比如 Postman 等工具) 或者 origin 在允许列表中，则允许
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
-}));
+};
+
+app.use(cors(corsOptions));
 
 // 请求解析中间件
 app.use(express.json({ limit: '10mb' }));
@@ -101,7 +115,7 @@ app.use((err, req, res, next) => {
 });
 
 // 7. 启动服务器监听
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT;
 
 // 验证必要的环境变量
 const requiredEnvVars = ['DB_HOST', 'DB_NAME', 'JWT_SECRET'];
