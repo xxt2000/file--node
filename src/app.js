@@ -1,3 +1,8 @@
+/**
+ * Express 应用程序入口文件
+ * 负责初始化服务器、中间件配置和路由挂载
+ */
+
 // 1. 引入核心框架和中间件
 const express = require('express');
 const cors = require('cors');
@@ -5,74 +10,130 @@ const path = require('path');
 const morgan = require('morgan');
 require('dotenv').config();
 
-// 2. 引入路由模块
-console.log('[调试] 开始加载路由模块...');
+// 引入日志工具
+const logger = require('./utils/logger');
+
+// 引入路由模块
 const fileRoutes = require('./routes/fileRoutes');
-console.log('[调试] fileRoutes 已加载:', typeof fileRoutes);
 const userRoutes = require('./routes/userRoutes');
-console.log('[调试] userRoutes 已加载:', typeof userRoutes);
 
-// 3. 初始化数据库
-console.log('[调试] 开始初始化数据库...');
+// 初始化数据库
 require('./models/database');
-console.log('[调试] 数据库初始化完成');
 
-// 4. 创建 Express 应用实例
+// 2. 创建 Express 应用实例
 const app = express();
 
-// 5. 设置服务器端口
-const PORT = process.env.PORT || 3000;
+// 3. 配置全局中间件
+// CORS 配置
+app.use(cors({
+  origin: process.env.CORS_ORIGIN || '*',
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 
-// 6. 配置全局中间件
-app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-app.use(morgan('combined'));
+// 请求解析中间件
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// 托管静态文件
+// 日志中间件
+app.use(morgan('combined', { stream: { write: message => logger.info(message.trim()) } }));
+
+// 静态文件服务
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
-// 7. 挂载 API 路由
-console.log('[调试] 开始挂载路由...');
-try {
-    app.use('/api/files', fileRoutes);
-    console.log('[调试] fileRoutes 挂载成功');
-} catch (error) {
-    console.error('[错误] 挂载 fileRoutes 时出错:', error);
-}
+// 4. 挂载 API 路由
+const apiRouter = express.Router();
 
-try {
-    app.use('/api/users', userRoutes);
-    console.log('[调试] userRoutes 挂载成功');
-} catch (error) {
-    console.error('[错误] 挂载 userRoutes 时出错:', error);
-}
-
-// 8. 定义健康检查接口
-app.get('/api/health', (req, res) => {
-    res.json({ status: 'ok', timestamp: new Date().toISOString() });
+// 健康检查端点
+apiRouter.get('/health', (req, res) => {
+  res.json({ 
+    status: 'ok', 
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    environment: process.env.NODE_ENV || 'development'
+  });
 });
 
+// 挂载业务路由
+apiRouter.use('/files', fileRoutes);
+apiRouter.use('/users', userRoutes);
+
+// 将 API 路由挂载到 /api 前缀
+app.use('/api', apiRouter);
+
+// 兼容旧版健康检查端点 (不带 /api 前缀)
 app.get('/health', (req, res) => {
-    res.json({ status: 'ok', timestamp: new Date().toISOString() });
+  res.redirect('/api/health');
 });
 
-// 9. 404 处理中间件
+// 5. 404 处理中间件
 app.use((req, res, next) => {
-    if (req.path.startsWith('/api')) {
-        return res.status(404).json({ error: '接口不存在', path: req.path });
-    }
-    res.status(404).send('Not Found');
+  if (req.path.startsWith('/api')) {
+    return res.status(404).json({ 
+      error: '接口不存在', 
+      path: req.path,
+      method: req.method 
+    });
+  }
+  res.status(404).send('Not Found');
 });
 
-// 10. 全局错误处理中间件
+// 6. 全局错误处理中间件
 app.use((err, req, res, next) => {
-    console.error(err.stack);
-    res.status(500).json({ error: '服务器内部错误', message: err.message });
+  // 记录错误日志
+  logger.error({
+    message: err.message,
+    stack: err.stack,
+    url: req.url,
+    method: req.method,
+    ip: req.ip
+  });
+
+  // 根据环境决定是否返回详细错误信息
+  const isDevelopment = process.env.NODE_ENV === 'development';
+  
+  res.status(err.status || 500).json({
+    error: '服务器内部错误',
+    message: isDevelopment ? err.message : '发生错误，请稍后再试',
+    ...(isDevelopment && { stack: err.stack })
+  });
 });
 
-// 11. 启动服务器监听
-app.listen(PORT, () => {
-    console.log(`服务器运行在 http://localhost:${PORT}`);
-    console.log(`API健康检查: http://localhost:${PORT}/api/health`);
+// 7. 启动服务器监听
+const PORT = process.env.PORT || 3000;
+
+// 验证必要的环境变量
+const requiredEnvVars = ['DB_HOST', 'DB_NAME', 'JWT_SECRET'];
+const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);
+
+if (missingEnvVars.length > 0) {
+  logger.error(`缺少必要的环境变量: ${missingEnvVars.join(', ')}`);
+  process.exit(1);
+}
+
+// 启动服务器
+const server = app.listen(PORT, () => {
+  logger.info(`服务器运行在 http://localhost:${PORT}`);
+  logger.info(`API健康检查: http://localhost:${PORT}/api/health`);
+  logger.info(`环境: ${process.env.NODE_ENV || 'development'}`);
+});
+
+// 优雅关闭处理
+process.on('SIGTERM', () => {
+  logger.info('收到 SIGTERM 信号，开始优雅关闭服务器...');
+  server.close(() => {
+    logger.info('服务器已关闭');
+    process.exit(0);
+  });
+});
+
+process.on('uncaughtException', (err) => {
+  logger.error('未捕获的异常:', err);
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  logger.error('未处理的 Promise 拒绝:', reason);
+  process.exit(1);
 });

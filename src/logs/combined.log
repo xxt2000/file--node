@@ -1,0 +1,10 @@
+2026-05-07 11:20:34 [info]: 服务器运行在 http://localhost:3000
+2026-05-07 11:20:34 [info]: API健康检查: http://localhost:3000/api/health
+2026-05-07 11:20:34 [info]: 环境: development
+2026-05-07 11:22:09 [info]: ::1 - - [07/May/2026:03:22:09 +0000] "GET /api/products HTTP/1.1" 404 65 "-" "Apifox/1.0.0 (https://apifox.com)"
+2026-05-07 11:22:21 [info]: ::1 - - [07/May/2026:03:22:21 +0000] "GET /api/admin HTTP/1.1" 404 62 "-" "Apifox/1.0.0 (https://apifox.com)"
+2026-05-07 11:22:35 [info]: ::1 - - [07/May/2026:03:22:35 +0000] "GET /api/admin HTTP/1.1" 404 62 "-" "Apifox/1.0.0 (https://apifox.com)"
+2026-05-07 11:44:52 [info]: 服务器运行在 http://localhost:3000
+2026-05-07 11:44:52 [info]: API健康检查: http://localhost:3000/api/health
+2026-05-07 11:44:52 [info]: 环境: development
+2026-05-07 11:44:53 [info]: ::1 - - [07/May/2026:03:44:53 +0000] "POST /api/users/login HTTP/1.1" 200 285 "-" "Apifox/1.0.0 (https://apifox.com)"
